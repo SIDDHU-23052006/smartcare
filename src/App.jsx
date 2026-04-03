@@ -1,6 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { subscribeToVitals } from './firebase';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { Activity, Heart, MapPin, AlertTriangle, Send, User, Bot, Navigation } from 'lucide-react';
+
+// ✅ Use Environment Variable for API Key (Set this in Vercel project settings)
+const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+const genAI = apiKey ? new GoogleGenerativeAI(apiKey) : null;
 
 function App() {
   const [vitals, setVitals] = useState({
@@ -36,57 +41,68 @@ function App() {
     scrollToBottom();
   }, [messages, isLoading]);
 
-  // ✅ UPDATED CHAT FUNCTION (USING BACKEND API)
+  // ✅🔥 FIXED CHAT FUNCTION
   const handleSendMessage = async (e) => {
     e.preventDefault();
     if (!input.trim()) return;
 
     const userMessage = input;
     setInput('');
-
-    setMessages(prev => [
-      ...prev,
-      { role: 'user', content: userMessage }
-    ]);
-
+    setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
     setIsLoading(true);
 
     try {
-      // 🔥 CALL YOUR VERCEL BACKEND
-      const response = await fetch("/api/gemini", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          message: userMessage,
-          vitals: vitals
-        })
-      });
-
-      // ❌ handle server error
-      if (!response.ok) {
-        throw new Error("Server error");
+      if (!genAI) {
+        throw new Error("Missing VITE_GEMINI_API_KEY environment variable. Please configure it in your Vercel project settings.");
       }
 
-      const data = await response.json();
+      // ✅ Create a contextual model specifically for this turn to inject latest vitals silently
+      const contextualModel = genAI.getGenerativeModel({
+        model: "gemini-2.5-flash",
+        systemInstruction: `You are a highly professional, empathetic medical assistant for Senthil kumar.
+
+Real-time vitals:
+SpO2: ${vitals.spo2}%
+Heart Rate: ${vitals.bpm} BPM
+Fall Detected: ${vitals.fall ? "YES" : "NO"}
+Location: ${vitals.lat}, ${vitals.lon}
+
+Instructions:
+- Give short and clear answers
+- Warn if vitals are abnormal
+- Suggest doctor if needed
+- Be supportive`
+      });
+
+      // ✅ Proper history format (Must skip the initial model greeting since Gemini requires history to start with 'user')
+      const historyMessages = messages.slice(1).map(msg => ({
+        role: msg.role === 'model' ? 'model' : 'user',
+        parts: [{ text: msg.content }]
+      }));
+
+      // ✅ Gemini API Call using startChat
+      const chat = contextualModel.startChat({
+        history: historyMessages
+      });
+
+      const result = await chat.sendMessage(userMessage);
+
+      // ✅ Safe response extraction
+      const text = result.response.text();
 
       setMessages(prev => [
         ...prev,
-        {
-          role: 'model',
-          content: data.reply || "⚠️ No response from AI"
-        }
+        { role: 'model', content: text }
       ]);
 
     } catch (error) {
-      console.error("🔥 API ERROR:", error);
+      console.error("🔥 Gemini Error:", error);
 
       setMessages(prev => [
         ...prev,
         {
           role: 'model',
-          content: "⚠️ I'm having trouble connecting right now. Please try again."
+          content: "⚠️ I'm having trouble connecting right now. Please check your API key or network."
         }
       ]);
     } finally {
