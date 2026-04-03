@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+
+  <!-- ✅ Empty favicon (will be replaced dynamically) -->
+  <link rel="icon" id="dynamic-favicon" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Smart Care</title>
+
+  <!-- ✅ VIDEO FAVICON SCRIPT -->
+  <script>
+    window.addEventListener("DOMContentLoaded", () => {
+      const video = document.createElement("video");
+      video.src = "/favicon.mp4"; // ✅ your video in public folder
+      video.muted = true;
+      video.autoplay = true;
+      video.loop = true;
+      video.playsInline = true;
+
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+
+      const favicon = document.getElementById("dynamic-favicon");
+
+      video.addEventListener("loadeddata", () => {
+        canvas.width = 64;
+        canvas.height = 64;
+
+        function updateFavicon() {
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+          const url = canvas.toDataURL("image/png");
+          favicon.href = url;
+
+          requestAnimationFrame(updateFavicon);
+        }
+
+        updateFavicon();
+      });
+
+      // Start video manually (important for some browsers)
+      video.play().catch(() => {});
+    });
+  </script>
+
+</head>
+
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/main.jsx"></script>
+</body>
+
+</html>
