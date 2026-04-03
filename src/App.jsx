@@ -59,7 +59,7 @@ function App() {
       // ✅ Create a contextual model specifically for this turn to inject latest vitals silently
       const contextualModel = genAI.getGenerativeModel({
         model: "gemini-2.5-flash",
-        systemInstruction: `You are a highly professional, empathetic medical assistant for Senthil kumar.
+        systemInstruction: `You are a highly professional, empathetic medical assistant for monitoring Senthil kumar's closed ones.
 
 Real-time vitals:
 SpO2: ${vitals.spo2}%
