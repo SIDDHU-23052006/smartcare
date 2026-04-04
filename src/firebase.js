@@ -2,7 +2,7 @@ import { initializeApp } from "firebase/app";
 import { getDatabase, ref, onValue } from "firebase/database";
 
 const firebaseConfig = {
-  databaseURL: "https://smartcare-98654-default-rtdb.firebaseio.com/",
+  databaseURL: "https://healthcare-b57f7-default-rtdb.firebaseio.com/",
 };
 
 const app = initializeApp(firebaseConfig);
